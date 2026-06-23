@@ -1,0 +1,70 @@
+.vue-tree-select-theme {
+  --control-size: 44px;
+  --icon-button-size: 44px;
+  --action-button-size: 34px;
+  --action-button-offset: 8px;
+  --action-space: 50px;
+
+  --tree-row-control-size: 22px;
+  --tree-row-control-center: 11px;
+  --tree-guide-center-offset: -1px;
+  --tree-row-gap: 10px;
+  --tree-indent-base: 12px;
+  --tree-indent-step: 18px;
+  --tree-guide-center: calc(var(--tree-row-control-center) + var(--tree-guide-center-offset));
+  --tree-guide-join-overlap: 1px;
+  --tree-checkbox-size: var(--tree-row-control-size);
+  --tree-row-toggle-size: var(--tree-row-control-size);
+
+  --surface: #161b22;
+  --surface-2: #1c2129;
+  --surface-hover: #222a35;
+  --border: #2a313c;
+  --border-strong: #3a424f;
+
+  --text: #e6edf3;
+  --text-muted: #9da7b3;
+  --text-faint: #6e7681;
+
+  --accent: #7c83ff;
+  --accent-hover: #6a72f0;
+  --accent-contrast: #ffffff;
+  --accent-soft: #232a45;
+
+  --selected: #28304f;
+  --match: #1b2336;
+  --guide: #343d4b;
+  --on-path: #fbbf24;
+
+  --highlight-bg: #c79100;
+  --highlight-text: #161b22;
+  --danger: #f97066;
+  --danger-soft: #3a2222;
+  --code: #aab2ff;
+
+  --scrollbar-thumb: rgba(160, 170, 190, 0.3);
+  --scrollbar-thumb-hover: rgba(160, 170, 190, 0.5);
+  --overlay: rgba(14, 17, 22, 0.66);
+
+  --focus-ring: 0 0 0 3px rgba(124, 131, 255, 0.35);
+  --card-shadow: 0 12px 30px -18px rgba(0, 0, 0, 0.7);
+}
+
+@media (min-width: 901px) and (pointer: fine) {
+  .vue-tree-select-theme {
+    --control-size: 36px;
+    --icon-button-size: 34px;
+    --action-button-size: 28px;
+    --action-button-offset: 7px;
+    --action-space: 42px;
+
+    --tree-row-control-size: 22px;
+    --tree-row-control-center: 11px;
+    --tree-guide-center-offset: -1px;
+    --tree-indent-base: 12px;
+    --tree-indent-step: 18px;
+    --tree-guide-center: calc(var(--tree-row-control-center) + var(--tree-guide-center-offset));
+    --tree-checkbox-size: var(--tree-row-control-size);
+    --tree-row-toggle-size: var(--tree-row-control-size);
+  }
+}

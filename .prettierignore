@@ -1,0 +1,16 @@
+# Build outputs
+dist/
+dist-ssr/
+coverage/
+node_modules/
+
+# Generated / test artifacts
+test-results/
+playwright-report/
+
+# Lock files
+package-lock.json
+
+# Markdown and JSON data — managed manually, not via Prettier
+*.md
+*.json
