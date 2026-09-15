@@ -215,6 +215,18 @@ function itemKey(rowIndex: RowIndex) {
   return renderKeyFor(keyOf(rowIndex), rowIndex)
 }
 
+function* itemKeys(from: RowIndex, to: RowIndex): Generator<RenderKey> {
+  const source = props.source
+  if (source.keysInRange) {
+    let rowIndex = from
+    for (const key of source.keysInRange(from, to - from)) {
+      yield renderKeyFor(key, rowIndex++)
+    }
+  } else {
+    for (let rowIndex = from; rowIndex < to; rowIndex++) yield itemKey(rowIndex)
+  }
+}
+
 function mappedAt(rowIndex: RowIndex) {
   return props.source.rowAt(rowIndex)
 }
@@ -243,6 +255,7 @@ const {
   props,
   itemCount,
   itemKey,
+  itemKeys,
 })
 
 const scrollOriginOffset = computed(() => topSpacerHeight.value + scrollCompensation.value)

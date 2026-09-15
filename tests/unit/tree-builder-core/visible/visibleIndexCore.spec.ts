@@ -8,6 +8,7 @@ import {
   keyAtVisibleIndex,
   totalVisible,
   visibleIndexOf,
+  visibleKeysInRange,
 } from '@/tree-builder-core'
 
 interface NestedNode {
@@ -63,6 +64,11 @@ describe('visibleIndexCore', () => {
 
       for (let start = 0; start <= visible.length; start++) {
         for (let count = 0; count <= visible.length - start + 1; count++) {
+          // Also exercise traversal without the optional pre-order shortcut.
+          const { parent, childStart, childIndex, roots } = indices
+          expect([
+            ...visibleKeysInRange({ parent, childStart, childIndex, roots }, counts, start, count),
+          ]).toEqual(visible.slice(start, start + count))
           expect(collectVisibleSlice(indices, counts, start, count)).toEqual(
             visible.slice(start, start + count),
           )
@@ -92,4 +98,26 @@ describe('visibleIndexCore', () => {
       }
     }
   })
+})
+
+it('skips fully filtered subtrees and roots in range traversal', () => {
+  const shown = new Set([0, 2, 4, 6, 10])
+  const counts = buildVisibleCounts(
+    indices,
+    () => true,
+    (index) => shown.has(index),
+  )
+  const expected = [0, 2, 4, 6, 10]
+  for (let start = 0; start <= expected.length; start++) {
+    expect([...visibleKeysInRange(indices, counts, start, 3)]).toEqual(
+      expected.slice(start, start + 3),
+    )
+  }
+})
+
+it('rejects invalid positions even in a fully visible subtree', () => {
+  const counts = buildVisibleCounts(indices, () => true)
+  for (const position of [-1, 0.5, NaN, Infinity, indices.nodes.length]) {
+    expect(keyAtVisibleIndex(indices, counts, position)).toBe(-1)
+  }
 })

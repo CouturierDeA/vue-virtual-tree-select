@@ -1,5 +1,10 @@
 import { computed, type ComputedRef, type Ref, type ShallowRef } from 'vue'
-import type { NodeIndex, SelectionHandler, TreeStructure } from '@/tree-builder-core'
+import {
+  createExportContext,
+  type NodeIndex,
+  type SelectionHandler,
+  type TreeStructure,
+} from '@/tree-builder-core'
 import { fromFilteredSet } from '@/virtual-list/rowSource'
 
 export function useSelectedSource<T, K>(options: {
@@ -14,13 +19,10 @@ export function useSelectedSource<T, K>(options: {
     const checkedSet = checked.value
     const strategy = selectionStrategy.value
     const shouldEmit = strategy.shouldEmit
+    const context = createExportContext(checkedSet, struct)
 
     function accept(index: NodeIndex) {
-      if (!shouldEmit) return true
-      return shouldEmit(index, {
-        isChecked: (key) => checkedSet.has(key),
-        ancestorsOf: (key) => struct.getAncestorsOf(key),
-      })
+      return shouldEmit ? shouldEmit(index, context) : true
     }
 
     return fromFilteredSet(checkedSet, {

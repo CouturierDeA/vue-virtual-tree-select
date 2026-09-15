@@ -1,8 +1,12 @@
 <template>
   <span class="tree-guides" aria-hidden="true">
-    <span v-for="(vertical, channel) in guides.verticals" :key="channel" class="tree-guides__col">
+    <span
+      v-for="vertical in guides.verticals"
+      :key="vertical.offset"
+      class="tree-guides__col"
+      :style="{ right: `calc(${vertical.offset} * var(--tree-indent-step, 18px))` }"
+    >
       <i
-        v-if="vertical.draw"
         class="tree-guides__line tree-guides__line--vertical"
         :class="{ 'tree-guides__line--on': vertical.active }"
       />
@@ -52,8 +56,6 @@ const connector = computed(() => props.guides.connector!)
 
 .tree-guides {
   bottom: 0;
-  display: flex;
-  justify-content: flex-end;
   left: 0;
   pointer-events: none;
   position: absolute;
@@ -62,8 +64,11 @@ const connector = computed(() => props.guides.connector!)
 }
 
 .tree-guides__col {
-  flex: 0 0 var(--tree-indent-step, 18px);
-  position: relative;
+  width: var(--tree-indent-step, 18px);
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  right: 0;
 }
 
 .tree-guides__line {

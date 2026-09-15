@@ -70,6 +70,7 @@ export const cascadeAll: SelectionHandler<unknown> = {
 export const cascadeCompact: SelectionHandler<unknown> = {
   onToggle: cascadeAll.onToggle,
   shouldEmit(key, ctx) {
+    if (ctx.hasCheckedAncestor) return !ctx.hasCheckedAncestor(key)
     for (const ancestor of ctx.ancestorsOf(key)) {
       if (ctx.isChecked(ancestor)) return false
     }

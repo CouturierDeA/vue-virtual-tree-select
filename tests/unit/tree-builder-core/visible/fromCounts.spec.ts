@@ -1,5 +1,10 @@
 import { describe, expect, it } from 'vitest'
-import { buildIndicesFromNested, buildVisibleCounts, fromCounts } from '@/tree-builder-core'
+import {
+  buildIndicesFromNested,
+  buildVisibleCounts,
+  fromCounts,
+  applyToggle,
+} from '@/tree-builder-core'
 
 type Node = { id: string; children?: Node[] }
 
@@ -56,4 +61,24 @@ describe('fromCounts row source', () => {
       expect(source.indexOf(keyOf('G'))).toBe(-1)
     })
   })
+})
+
+it('range traversal sees counts changed in place or replaced, and maps object keys', async () => {
+  const { keyMappedRowSource } = await import('@/virtual-list/rowSource')
+  let counts = buildVisibleCounts(indices, () => true)
+  const inner = fromCounts(indices, () => counts, {
+    rowOf: (index) => indices.nodes[index]!,
+    isOpen: () => true,
+  })
+  const source = keyMappedRowSource(inner, {
+    toOuterKey: (index) => indices.nodes[index]!,
+    toInnerKey: (node) => indices.nodes.indexOf(node),
+  })
+  expect([...source.keysInRange!(1, 10)]).toEqual(indices.nodes.slice(1))
+  applyToggle(indices, counts, 1, false)
+  expect([...source.keysInRange!(1, 10)]).toEqual([indices.nodes[1]])
+  applyToggle(indices, counts, 1, true)
+  expect([...source.keysInRange!(1, 2)]).toEqual(indices.nodes.slice(1, 3))
+  counts = buildVisibleCounts(indices, () => false)
+  expect([...source.keysInRange!(0, 10)]).toEqual([indices.nodes[0]])
 })
