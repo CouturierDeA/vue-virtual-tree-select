@@ -7,6 +7,7 @@ export function useMeasuredOffsets(options: {
   props: { minUnmeasuredRowHeight: number }
   itemCount: () => number
   itemKey: (rowIndex: RowIndex) => RenderKey
+  itemKeys?: (from: RowIndex, to: RowIndex) => Iterable<RenderKey>
 }) {
   const { windowStart, windowEnd, props, itemCount, itemKey } = options
 
@@ -50,38 +51,48 @@ export function useMeasuredOffsets(options: {
     return heightsByKey.value.get(itemKey(rowIndex))
   }
 
+  function* keysInRange(from: RowIndex, to: RowIndex) {
+    if (options.itemKeys) yield* options.itemKeys(from, to)
+    else for (let rowIndex = from; rowIndex < to; rowIndex++) yield itemKey(rowIndex)
+  }
+
   function getMeasuredRangeHeight(from: RowIndex, to: RowIndex) {
+    if (to > from && (from < 0 || to > itemCount())) return undefined
     let acc = 0
-    for (let rowIndex = from; rowIndex < to; rowIndex++) {
-      const height = getMeasuredHeightForRow(rowIndex)
+    for (const key of keysInRange(from, to)) {
+      const height = heightsByKey.value.get(key)
       if (height === undefined) return undefined
       acc += height
     }
     return acc
   }
 
+  function fillOffsets(offsets: Float64Array, localStart: number) {
+    const len = windowEnd.value - windowStart.value
+    const estimate = currentEstimate()
+    let acc = offsets[localStart] ?? 0
+    let local = localStart
+    const from = windowStart.value + localStart
+    const to = Math.min(windowEnd.value, itemCount())
+    for (const key of keysInRange(from, to)) {
+      offsets[local++] = acc
+      acc += heightsByKey.value.get(key) ?? estimate
+    }
+    // Source shrink can temporarily leave the window past the last row.
+    offsets.fill(acc, local, len + 1)
+  }
+
   function buildOffsets() {
     const len = windowEnd.value - windowStart.value
     const next = new Float64Array(len + 1)
-    let acc = 0
-    for (let i = 0; i < len; i++) {
-      next[i] = acc
-      acc += getHeightAt(i)
-    }
-    next[len] = acc
+    fillOffsets(next, 0)
     offsetsRef.value = next
   }
 
   function rebuildOffsetsFrom(localChangedIndex: number) {
-    const offsets = offsetsRef.value
     const len = windowEnd.value - windowStart.value
     if (localChangedIndex < 0 || localChangedIndex >= len) return
-    let acc = offsets[localChangedIndex] ?? 0
-    for (let i = localChangedIndex; i < len; i++) {
-      offsets[i] = acc
-      acc += getHeightAt(i)
-    }
-    offsets[len] = acc
+    fillOffsets(offsetsRef.value, localChangedIndex)
     triggerRef(offsetsRef)
   }
 
@@ -128,7 +139,7 @@ export function useMeasuredOffsets(options: {
     const active = new Set<RenderKey>()
     const keepStart = Math.max(0, windowStart.value - keepWindow)
     const keepEnd = Math.min(itemCount(), windowEnd.value + keepWindow)
-    for (let g = keepStart; g < keepEnd; g++) active.add(itemKey(g))
+    for (const key of keysInRange(keepStart, keepEnd)) active.add(key)
     const next = new Map<RenderKey, number>()
     let nextSum = 0
     for (const [key, height] of old) {

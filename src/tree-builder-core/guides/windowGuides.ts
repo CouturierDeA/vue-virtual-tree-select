@@ -60,17 +60,13 @@ export function windowGuides(
     return false
   }
 
-  const ancestors: NodeIndex[] = []
-  let cur = index
-  for (let d = depth; d > 0; d--) {
-    const p = parent[cur]
-    ancestors.push(p)
-    cur = p
-  }
-  const verticals: { draw: boolean; active: boolean }[] = []
-  for (let channel = 0; channel <= depth - 2; channel++) {
-    const ancestor = ancestors[depth - 2 - channel]!
-    verticals.push({ draw: hasVisibleLaterSibling(ancestor), active: hasOnPathLaterSibling(ancestor) })
+  const verticals: TreeNodeGuides['verticals'] = []
+  let ancestor = parent[index]
+  for (let offset = 1; offset < depth; offset++) {
+    if (hasVisibleLaterSibling(ancestor)) {
+      verticals.push({ offset, active: hasOnPathLaterSibling(ancestor) })
+    }
+    ancestor = parent[ancestor]
   }
   const onPath = isOnPath(index)
   const laterSiblingActive = hasOnPathLaterSibling(index)

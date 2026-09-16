@@ -7,15 +7,13 @@ export interface RowSource<Row, Key = unknown> {
   readonly length: number
   keyAt(rowIndex: RowIndex): Key
   rowAt(rowIndex: RowIndex): Row
+  /** Optional sequential traversal of at most count keys, starting at a visible row. */
+  keysInRange?(start: RowIndex, count: number): Iterable<Key>
   indexOf(key: Key): RowIndex
   fallbackFor?(key: Key): Key | undefined
 }
 
-export function keyMappedRowSource<
-  Row,
-  InnerKey = unknown,
-  OuterKey = unknown,
->(
+export function keyMappedRowSource<Row, InnerKey = unknown, OuterKey = unknown>(
   inner: RowSource<Row, InnerKey>,
   mapping: {
     toOuterKey: (key: InnerKey) => OuterKey
@@ -29,6 +27,11 @@ export function keyMappedRowSource<
     },
     keyAt: (rowIndex) => toOuterKey(inner.keyAt(rowIndex)),
     rowAt: (rowIndex) => inner.rowAt(rowIndex),
+    keysInRange: inner.keysInRange
+      ? function* (start, count) {
+          for (const key of inner.keysInRange!(start, count)) yield toOuterKey(key)
+        }
+      : undefined,
     indexOf: (key) => {
       const innerKey = toInnerKey(key)
       if (innerKey === undefined) return -1

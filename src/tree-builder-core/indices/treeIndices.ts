@@ -17,7 +17,7 @@ export type VisibleIndex = number
 export interface TreeIndices<T> {
   nodes: T[]
   parent: Int32Array // parent NodeIndex, -1 for roots
-  depth: Uint16Array
+  depth: Uint32Array
   subtreeSize: Int32Array
   // Children in CSR form: children of index are childIndex[childStart[index] .. childStart[index + 1]).
   childStart: Int32Array // length n + 1
@@ -37,7 +37,7 @@ export function finalizeIndices<T>(
 ): TreeIndices<T> {
   const n = nodes.length
   const parent = Int32Array.from(parentList)
-  const depth = Uint16Array.from(depthList)
+  const depth = Uint32Array.from(depthList)
 
   // Pre-order keeps children after their parent, so one reverse sweep folds each subtree in.
   const subtreeSize = new Int32Array(n).fill(1)

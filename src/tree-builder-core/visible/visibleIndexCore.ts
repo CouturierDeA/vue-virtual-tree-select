@@ -1,13 +1,10 @@
-import type {
-  NodeIndex,
-  TreeIndices,
-  VisibleIndex,
-} from '@/tree-builder-core/indices/treeIndices'
+import type { NodeIndex, TreeIndices, VisibleIndex } from '@/tree-builder-core/indices/treeIndices'
 
 export type VisibleTopology = Pick<
   TreeIndices<unknown>,
   'parent' | 'childStart' | 'childIndex' | 'roots'
->
+> &
+  Partial<Pick<TreeIndices<unknown>, 'subtreeSize'>>
 
 export function buildVisibleCounts(
   topo: VisibleTopology,
@@ -61,7 +58,7 @@ export function keyAtVisibleIndex(
   position: VisibleIndex,
 ): NodeIndex {
   const { childStart, childIndex, roots } = topo
-  if (!(position >= 0)) return -1
+  if (!Number.isInteger(position) || position < 0) return -1
   let p = position
   let node = -1
   for (let r = 0; r < roots.length; r++) {
@@ -75,6 +72,8 @@ export function keyAtVisibleIndex(
   }
   if (node < 0) return -1
   for (;;) {
+    // A fully visible subtree is a contiguous interval in pre-order storage.
+    if (counts[node] === topo.subtreeSize?.[node]) return node + p
     if (p === 0) return node
     p -= 1
     let moved = false
@@ -121,39 +120,62 @@ export function visibleIndexOf(
   }
 }
 
+/** Stream a visible window without repeated root searches or a flattened tree. */
+export function* visibleKeysInRange(
+  topo: VisibleTopology,
+  counts: Int32Array,
+  start: VisibleIndex,
+  count: number,
+): Generator<NodeIndex> {
+  if (!Number.isInteger(start) || start < 0 || !(count > 0)) return
+  const { childStart, childIndex, roots, subtreeSize } = topo
+  type Siblings = { nodes: ArrayLike<number>; cursor: number; end: number }
+  const pending: Siblings[] = []
+  let group: Siblings = { nodes: roots, cursor: 0, end: roots.length }
+  let skip = start
+  let remaining = Math.floor(count)
+  if (remaining === 0) return
+
+  for (;;) {
+    if (group.cursor === group.end) {
+      const next = pending.pop()
+      if (!next) return
+      group = next
+      continue
+    }
+    const node = group.nodes[group.cursor++]!
+    const visible = counts[node]
+    if (visible <= skip) {
+      skip -= visible
+      continue
+    }
+    if (visible === subtreeSize?.[node]) {
+      const take = Math.min(visible - skip, remaining)
+      for (let i = node + skip; i < node + skip + take; i++) yield i
+      remaining -= take
+      skip = 0
+      if (remaining === 0) return
+      continue
+    }
+    if (skip === 0) {
+      yield node
+      if (--remaining === 0) return
+    } else {
+      skip--
+    }
+    if (visible > 1) {
+      // Unary chains need no stack entry: there are no siblings to revisit.
+      if (group.cursor < group.end) pending.push(group)
+      group = { nodes: childIndex, cursor: childStart[node], end: childStart[node + 1] }
+    }
+  }
+}
+
 export function collectVisibleSlice(
   topo: VisibleTopology,
   counts: Int32Array,
   start: VisibleIndex,
   count: number,
 ) {
-  const { childStart, childIndex, roots } = topo
-  const end = start + count
-  const out: NodeIndex[] = []
-  if (count <= 0) return out
-
-  const visit = (node: NodeIndex, nodePos: number) => {
-    if (out.length >= count) return
-    if (nodePos >= start) out.push(node)
-    if (counts[node] === 1) return
-    let childPos = nodePos + 1
-    for (let c = childStart[node]; c < childStart[node + 1]; c++) {
-      if (out.length >= count) return
-      const child = childIndex[c]
-      const cc = counts[child]
-      if (childPos < end && childPos + cc > start) visit(child, childPos)
-      childPos += cc
-      if (childPos >= end) return
-    }
-  }
-
-  let pos = 0
-  for (let r = 0; r < roots.length && out.length < count; r++) {
-    const root = roots[r]!
-    const rc = counts[root]
-    if (pos < end && pos + rc > start) visit(root, pos)
-    pos += rc
-    if (pos >= end) break
-  }
-  return out
+  return Array.from(visibleKeysInRange(topo, counts, start, count))
 }

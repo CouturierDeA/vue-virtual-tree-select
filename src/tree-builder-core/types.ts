@@ -3,6 +3,9 @@ export interface StructureShape<K> {
   getChildrenOf(key: K): readonly K[]
   getDescendantsOf(key: K): Iterable<K>
   getAncestorsOf(key: K): readonly K[]
+  /** Direct parent, or undefined for a root. Enables allocation-free ancestor walks. */
+  getParentOf?(key: K): K | undefined
+  someAncestorOf?(key: K, predicate: (ancestor: K) => boolean): boolean
   getDepthOf(key: K): number
   subtreeSize(key: K): number
   hasChildren(key: K): boolean
@@ -25,6 +28,7 @@ export interface SelectionContext<K> {
 export interface ExportContext<K> {
   isChecked(key: K): boolean
   ancestorsOf(key: K): readonly K[]
+  hasCheckedAncestor?(key: K): boolean
 }
 
 export interface SelectionHandler<K> {
@@ -33,7 +37,8 @@ export interface SelectionHandler<K> {
 }
 
 export type TreeNodeGuides = {
-  verticals: { draw: boolean; active: boolean }[]
+  /** Only drawn lines; offset is the number of indent steps left of the connector. */
+  verticals: { offset: number; active: boolean }[]
   connector: {
     hasDown: boolean
     upActive: boolean

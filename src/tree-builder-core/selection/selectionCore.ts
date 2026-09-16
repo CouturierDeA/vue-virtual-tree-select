@@ -43,15 +43,29 @@ export function toggledSelection<K>(
   return { checked: nextChecked, indeterminate: nextIndeterminate }
 }
 
+type SelectionExportStructure<K> = Pick<StructureShape<K>, 'getAncestorsOf' | 'someAncestorOf'>
+
+export function createExportContext<K>(
+  checked: ReadonlySet<K>,
+  structure: SelectionExportStructure<K>,
+): ExportContext<K> {
+  const isChecked = (key: K) => checked.has(key)
+  return {
+    isChecked,
+    ancestorsOf: (key) => structure.getAncestorsOf(key),
+    // Keep the array-based contract for existing structures and custom handlers.
+    hasCheckedAncestor: structure.someAncestorOf
+      ? (key) => structure.someAncestorOf!(key, isChecked)
+      : undefined,
+  }
+}
+
 export function emitKeys<K>(
   checked: ReadonlySet<K>,
-  structure: Pick<StructureShape<K>, 'getAncestorsOf'>,
+  structure: SelectionExportStructure<K>,
   handler: SelectionHandler<K>,
 ): K[] {
-  const context: ExportContext<K> = {
-    isChecked: (key) => checked.has(key),
-    ancestorsOf: (key) => structure.getAncestorsOf(key),
-  }
+  const context = createExportContext(checked, structure)
   const out: K[] = []
   for (const key of checked) {
     if (handler.shouldEmit && !handler.shouldEmit(key, context)) continue

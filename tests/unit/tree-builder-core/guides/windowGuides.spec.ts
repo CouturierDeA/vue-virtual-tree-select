@@ -60,11 +60,11 @@ describe('windowGuides', () => {
     expect(guidesAt('A2').connector?.descent).toBe(false) // leaf
   })
 
-  it('a node carries one vertical channel per ancestor level above its parent', () => {
+  it('a node carries only drawn channels with explicit offsets', () => {
     expect(guidesAt('A1').verticals).toHaveLength(0) // depth 1
     const deep = guidesAt('A1x').verticals // depth 2
     expect(deep).toHaveLength(1)
-    expect(deep[0]!.draw).toBe(true) // ancestor A1 still has a later sibling (A2)
+    expect(deep[0]).toEqual({ offset: 1, active: false }) // ancestor A1 still has a later sibling (A2)
   })
 
   it('without a search nothing is on-path', () => {
@@ -92,11 +92,29 @@ describe('windowGuides', () => {
     const matchAnc = ancestorsOf('A1x')
     const filtered = filteredCounts(matched, matchAnc)
     // full tree: A1's later sibling A2 keeps the vertical drawn
-    expect(guidesAt('A1x', matched, matchAnc).verticals[0]!.draw).toBe(true)
+    expect(guidesAt('A1x', matched, matchAnc).verticals).toHaveLength(1)
     // filtered: A2 is not on-path, so the vertical is dropped
-    expect(guidesAt('A1x', matched, matchAnc, filtered).verticals[0]!.draw).toBe(false)
+    expect(guidesAt('A1x', matched, matchAnc, filtered).verticals).toEqual([])
     // and A1x's own down-line drops too (A1y is not on-path)
     expect(guidesAt('A1x', matched, matchAnc).connector?.hasDown).toBe(true)
     expect(guidesAt('A1x', matched, matchAnc, filtered).connector?.hasDown).toBe(false)
   })
+})
+
+it('preserves line position and highlight across empty ancestor channels', () => {
+  const tree = buildIndicesFromNested<Node>(
+    [
+      {
+        id: 'root',
+        children: [
+          { id: 'branch', children: [{ id: 'only', children: [{ id: 'leaf' }] }] },
+          { id: 'match' },
+        ],
+      },
+    ],
+    { getChildren: (node) => node.children },
+  )
+  const counts = buildVisibleCounts(tree, () => true)
+  const guides = windowGuides(tree, counts, new Set([4]), new Set([0]), 3)
+  expect(guides.verticals).toEqual([{ offset: 2, active: true }])
 })

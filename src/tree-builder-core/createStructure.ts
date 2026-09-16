@@ -22,6 +22,8 @@ export function createStructure<T, K = T>(
     getChildrenOf: nav.getChildrenOf,
     getDescendantsOf: nav.getDescendantsOf,
     getAncestorsOf: nav.getAncestorsOf,
+    getParentOf: nav.getParentOf,
+    someAncestorOf: nav.someAncestorOf,
     getDepthOf: nav.getDepthOf,
     subtreeSize: nav.subtreeSize,
     hasChildren: nav.hasChildren,
@@ -101,6 +103,13 @@ function createIndexNavigation<T>(indices: TreeIndices<T>) {
     return out
   }
 
+  function someAncestorOf(index: NodeIndex, predicate: (ancestor: NodeIndex) => boolean) {
+    for (let p = parent[index]; p >= 0; p = parent[p]) {
+      if (predicate(p)) return true
+    }
+    return false
+  }
+
   function getDescendantsOf(index: NodeIndex) {
     const out: NodeIndex[] = []
     const end = index + subtreeSize[index]
@@ -138,6 +147,8 @@ function createIndexNavigation<T>(indices: TreeIndices<T>) {
     getChildrenOf,
     getDescendantsOf,
     getAncestorsOf,
+    getParentOf: (index: NodeIndex) => (parent[index] >= 0 ? parent[index] : undefined),
+    someAncestorOf,
     getDepthOf: (index: NodeIndex) => depth[index],
     subtreeSize: (index: NodeIndex) => subtreeSize[index],
     hasChildren: (index: NodeIndex) => childStart[index + 1] > childStart[index],
@@ -161,14 +172,13 @@ function createVisibleProjectionOps(indices: TreeIndices<unknown>) {
     counts: (
       shouldDescend: (index: NodeIndex) => boolean,
       shouldShow?: (index: NodeIndex) => boolean,
-    ) =>
-      buildVisibleCounts(indices, shouldDescend, shouldShow),
+    ) => buildVisibleCounts(indices, shouldDescend, shouldShow),
     applyToggle: (counts: Int32Array, index: NodeIndex, nowOpen: boolean) =>
       applyToggle(indices, counts, index, nowOpen),
   }
 }
 
-function createSearchOps(nav: Pick<IndexNavigation<unknown>, 'getAncestorsOf'>) {
+function createSearchOps(nav: Pick<IndexNavigation<unknown>, 'getAncestorsOf' | 'getParentOf'>) {
   return {
     matchAncestors: (matched: Iterable<NodeIndex>) => matchAncestors(matched, nav),
   }

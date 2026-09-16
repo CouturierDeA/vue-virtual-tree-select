@@ -4,6 +4,7 @@ import {
   keyAtVisibleIndex,
   totalVisible,
   visibleIndexOf,
+  visibleKeysInRange,
   type VisibleTopology,
 } from '@/tree-builder-core/visible/visibleIndexCore'
 
@@ -23,6 +24,7 @@ export function fromCounts<Row>(
     },
     keyAt: (index) => keyAtVisibleIndex(topo, getCounts(), index),
     rowAt: (index) => rowOf(keyAtVisibleIndex(topo, getCounts(), index)),
+    keysInRange: (start, count) => visibleKeysInRange(topo, getCounts(), start, count),
     indexOf: (key) => visibleIndexOf(topo, getCounts(), key),
     fallbackFor: (key) => nearestVisibleAncestor(parent, isOpen, key),
   }
