@@ -47,3 +47,74 @@ describe('search core', () => {
     })
   })
 })
+
+describe('shared ancestor paths', () => {
+  type Nested = { id: string; children?: Nested[] }
+  const tree = createStructure(
+    buildIndicesFromNested<Nested>(
+      [
+        { id: 'a', children: [{ id: 'b', children: [{ id: 'c' }, { id: 'd' }] }, { id: 'e' }] },
+        { id: 'f', children: [{ id: 'g' }] },
+      ],
+      { getChildren: (node) => node.children },
+    ),
+  )
+
+  it('matches the original set and insertion order for every subset in either order', () => {
+    const keys = [...tree.keys()]
+    for (let mask = 0; mask < 1 << keys.length; mask++) {
+      const matches = keys.filter((key) => mask & (1 << key))
+      for (const ordered of [matches, [...matches].reverse()]) {
+        const original = matchAncestors(ordered, { getAncestorsOf: tree.getAncestorsOf })
+        expect([...tree.matchAncestors(ordered)]).toEqual([...original])
+        expect([...matchAncestors(ordered, tree)]).toEqual([...original])
+      }
+    }
+  })
+
+  it('recomputes paths per query and excludes a match unless it is another match ancestor', () => {
+    expect([...tree.matchAncestors([2, 3, 2])]).toEqual([1, 0])
+    expect([...tree.matchAncestors([6])]).toEqual([5])
+    expect([...tree.matchAncestors([0, 5])]).toEqual([])
+    expect(tree.getParentOf(0)).toBeUndefined()
+    expect(tree.getParentOf(2)).toBe(1)
+  })
+
+  it('supports generic keys and calls parent accessors with their receiver', () => {
+    const navigation = {
+      parents: new Map([
+        ['leaf', 'branch'],
+        ['branch', ''],
+      ]),
+      getParentOf(key: string) {
+        return this.parents.get(key)
+      },
+      getAncestorsOf(): string[] {
+        throw new Error('Ancestor arrays must not be built')
+      },
+    }
+    expect([...matchAncestors(['leaf', 'branch', 'leaf'], navigation)]).toEqual(['branch', ''])
+  })
+
+  it('visits shared deep paths linearly without creating ancestor arrays', () => {
+    const size = 200_000
+    let parentReads = 0
+    const navigation = {
+      getParentOf(index: number) {
+        if (++parentReads > size * 2) throw new Error('Repeated ancestor path')
+        return index > 0 ? index - 1 : undefined
+      },
+      getAncestorsOf(): number[] {
+        throw new Error('Ancestor arrays must not be built')
+      },
+    }
+    function* matches() {
+      for (let index = 0; index < size; index++) yield index
+    }
+    const result = matchAncestors(matches(), navigation)
+    expect(result.size).toBe(size - 1)
+    expect(result.has(0)).toBe(true)
+    expect(result.has(size - 1)).toBe(false)
+    expect(parentReads).toBe(size * 2 - 1)
+  })
+})

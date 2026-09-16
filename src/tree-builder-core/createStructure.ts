@@ -22,6 +22,7 @@ export function createStructure<T, K = T>(
     getChildrenOf: nav.getChildrenOf,
     getDescendantsOf: nav.getDescendantsOf,
     getAncestorsOf: nav.getAncestorsOf,
+    getParentOf: nav.getParentOf,
     someAncestorOf: nav.someAncestorOf,
     getDepthOf: nav.getDepthOf,
     subtreeSize: nav.subtreeSize,
@@ -146,6 +147,7 @@ function createIndexNavigation<T>(indices: TreeIndices<T>) {
     getChildrenOf,
     getDescendantsOf,
     getAncestorsOf,
+    getParentOf: (index: NodeIndex) => (parent[index] >= 0 ? parent[index] : undefined),
     someAncestorOf,
     getDepthOf: (index: NodeIndex) => depth[index],
     subtreeSize: (index: NodeIndex) => subtreeSize[index],
@@ -176,7 +178,7 @@ function createVisibleProjectionOps(indices: TreeIndices<unknown>) {
   }
 }
 
-function createSearchOps(nav: Pick<IndexNavigation<unknown>, 'getAncestorsOf'>) {
+function createSearchOps(nav: Pick<IndexNavigation<unknown>, 'getAncestorsOf' | 'getParentOf'>) {
   return {
     matchAncestors: (matched: Iterable<NodeIndex>) => matchAncestors(matched, nav),
   }

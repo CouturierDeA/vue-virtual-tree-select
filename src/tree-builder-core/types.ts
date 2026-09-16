@@ -3,6 +3,8 @@ export interface StructureShape<K> {
   getChildrenOf(key: K): readonly K[]
   getDescendantsOf(key: K): Iterable<K>
   getAncestorsOf(key: K): readonly K[]
+  /** Direct parent, or undefined for a root. Enables allocation-free ancestor walks. */
+  getParentOf?(key: K): K | undefined
   someAncestorOf?(key: K, predicate: (ancestor: K) => boolean): boolean
   getDepthOf(key: K): number
   subtreeSize(key: K): number
